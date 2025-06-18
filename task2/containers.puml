@@ -1,0 +1,90 @@
+@startuml
+!includeurl ../c4/C4_Container.puml
+
+Person(customer, "Customer", "Uses mobile or web app to control devices")
+
+System_Ext(pushProvider, "Push Provider", "External push provider")
+System_Ext(appleCloud, "Apple Cloud", "External Apple service")
+System_Ext(xiaomiCloud, "Xiaomi Cloud", "External Xiaomi service")
+
+System_Boundary(smartHome, "Smart Home Platform") {
+  Container(mobileApp, "Mobile App", "iOS/Android", "Controls devices and receives notifications")
+  Container(webApp, "Web App", "Web frontend", "Controls devices via web")
+  Container(apiGateway, "API Gateway", "Spring Cloud Gateway", "Routes and secures API calls")
+  Container(authService, "Auth Service", "Keycloak", "Handles authentication and JWTs")
+  Container(userManager, "User Service", "Spring Boot", "Stores user info")
+  Container(eventService, "Event Service", "Spring Boot", "Processes and publishes events")
+  Container(streamingService, "Streaming Service", "Spring Boot", "Streams media to clients")
+  Container(notificationService, "Notification Service", "Spring Boot", "Sends push notifications")
+  Container(telemetryService, "Telemetry Service", "Spring Boot", "Processes telemetry data")
+  Container(mirrorMaker, "Mirror Maker", "Spring Boot", "Replicates data from Kafka topics")
+  Container(kafka, "Kafka", "Apache Kafka", "Event backbone for the platform")
+  Container(deviceManager, "Device Manager", "Spring Boot", "Manages and syncs device states")
+  Container(subscriptionService, "Subscription Service", "Spring Boot", "Manages user subscriptions")
+  Container(scenarioManager, "Scenario Service", "Spring Boot", "Handles automation scenarios")
+  Container(appleDeviceConnector, "Apple Device Connector", "Spring Boot", "Connects to Apple devices")
+  Container(xiaomiDeviceConnector, "Xiaomi Device Connector", "Spring Boot", "Connects to Xiaomi devices")
+  Container(appleProxy, "Apple Proxy", "Spring Boot", "Forwards to Apple Cloud")
+  Container(xiaomiProxy, "Xiaomi Proxy", "Spring Boot", "Forwards to Xiaomi Cloud")
+  ContainerDb(devicePostgres, "PostgreSQL", "Relational Database", "Stores device metadata")
+  ContainerDb(scenarioPostgres, "PostgreSQL", "Relational Database", "Stores scenarios")
+  ContainerDb(userPostgres, "PostgreSQL", "Relational Database", "Stores users")
+  ContainerDb(clickhouse, "Clickhouse", "Columnar Database", "Stores telemetry data")
+}
+
+System_Ext(devices, "Devices", "Smart home IoT devices")
+
+' Relationships
+Rel(customer, mobileApp, "Uses")
+Rel(customer, webApp, "Uses")
+Rel(mobileApp, pushProvider, "Receives push notifications")
+Rel(mobileApp, apiGateway, "API calls")
+Rel(webApp, apiGateway, "API calls")
+
+Rel(apiGateway, authService, "Authenticates requests")
+Rel(apiGateway, eventService, "Generate events based on clients requests")
+Rel(apiGateway, telemetryService, "Request telemetry data")
+Rel(apiGateway, streamingService, "Provide video streams")
+Rel(apiGateway, scenarioManager, "Create and modify scenarios")
+Rel(apiGateway, userManager, "Create and modify users")
+
+Rel(eventService, kafka, "Publishes events")
+
+Rel(telemetryService, clickhouse, "Read telemetry data")
+
+Rel(mirrorMaker, kafka, "Read telemetry events")
+Rel(mirrorMaker, clickhouse, "Write telemetry events")
+
+Rel(streamingService, pushProvider, "Sends push")
+Rel(streamingService, kafka, "Streams events")
+Rel(streamingService, appleProxy, "Streams events")
+Rel(streamingService, xiaomiProxy, "Streams events")
+
+Rel(notificationService, pushProvider, "Sends push notifications")
+Rel(notificationService, kafka, "Consumes events about user notifications")
+
+Rel(deviceManager, kafka, "Streams device events (add / remove)")
+Rel(subscriptionService, kafka, "Streams subscription events (state)")
+Rel(scenarioManager, deviceManager, "Request device data")
+Rel(scenarioManager, kafka, "Streams scenario events")
+Rel(scenarioManager, scenarioPostgres, "Stores scenario data")
+
+Rel(userManager, userPostgres, "Stores device data")
+Rel(userManager, authService, "Control user")
+
+Rel(deviceManager, devicePostgres, "Stores device data")
+Rel(deviceManager, appleDeviceConnector, "Controls Apple devices")
+Rel(deviceManager, xiaomiDeviceConnector, "Controls Xiaomi devices")
+
+Rel(appleDeviceConnector, appleProxy, "Calls")
+Rel(xiaomiDeviceConnector, xiaomiProxy, "Calls")
+
+Rel(appleProxy, appleCloud, "Calls API")
+Rel(xiaomiProxy, xiaomiCloud, "Calls API")
+
+Rel(appleCloud, devices, "Communicate")
+Rel(xiaomiCloud, devices, "Communicate")
+
+Rel(devices, customer, "Used by")
+
+@enduml
