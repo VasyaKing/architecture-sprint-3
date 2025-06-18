@@ -1,0 +1,79 @@
+@startuml
+' ---- CORE TABLES ----
+
+entity "user" as User {
+  * id : BIGSERIAL <<PK>>
+  --
+  name : VARCHAR
+  email : VARCHAR
+  created_date : TIMESTAMP
+}
+
+entity "device" as Device {
+  * id : BIGSERIAL <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  type : VARCHAR
+  status : VARCHAR
+  state : JSONB
+  created_date : TIMESTAMP
+  updated_date : TIMESTAMP
+}
+
+entity "device_state" as DeviceState {
+  * id : BIGSERIAL <<PK>>
+  --
+  device_id : BIGINT <<FK>>
+  status : VARCHAR
+  state : JSONB
+  created_date : TIMESTAMP
+}
+
+entity "scenario" as Scenario {
+  * id : BIGSERIAL <<PK>>
+  --
+  user_id : BIGINT <<FK>>
+  name : VARCHAR
+  config : JSONB
+  device_ids : UUID[] <<Array>>
+  created_date : TIMESTAMP
+  updated_date : TIMESTAMP
+}
+
+
+entity "telemetry" as Telemetry {
+  * id : BIGSERIAL <<PK>>
+  --
+  device_id : BIGINT <<FK>>
+  data : JSONB
+  received_at : TIMESTAMP
+}
+
+
+entity "device_state_changed_event" as DeviceStateChangedEvent {
+  * event_id : UUID <<PK>>
+  --
+  device_id : BIGINT
+  new_state : JSONB
+  status : VARCHAR
+  produced_at : TIMESTAMP
+}
+
+entity "device_command" as DeviceCommand {
+  * command_id : UUID <<PK>>
+  --
+  device_id : BIGINT
+  command_type : VARCHAR
+  payload : JSONB
+  sent_at : TIMESTAMP
+}
+
+Device }|..|| User : "belongs to"
+DeviceState }|..|| Device : "belongs to"
+Scenario }|..|| User : "owned by"
+Telemetry }|..|| Device : "from"
+Scenario }|..|| DeviceState : "about"
+DeviceStateChangedEvent }|..|| Device : "about"
+DeviceCommand }|..|| Device : "for"
+
+@enduml
