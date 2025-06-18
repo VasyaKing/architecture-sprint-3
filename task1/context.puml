@@ -1,0 +1,16 @@
+@startuml
+!include ../c4/C4_Context.puml
+
+package "Smart Home Monolith" {
+
+  package "Управление системой отопления" {
+    rectangle "Управление настройками системы отопления\n[вкл/выкл, изменение текущей температуры]" as SHContext
+  }
+
+}
+
+Person(Customer, "Customer")
+
+Rel(Customer, SHContext, "Настраивает параметры отопления")
+
+@enduml

@@ -1,0 +1,104 @@
+@startuml
+!includeurl ../c4/C4_Component.puml
+!includeurl ../c4/C4_Context.puml
+
+' Domain
+class Device {
+  + Long id
+  + Long userId
+  + String type
+  + String state  ' JSON
+  + DeviceStateStatus status  ' ON/OFF
+  + LocalDateTime createdDate
+  + LocalDateTime updatedDate
+}
+
+enum DeviceStateStatus {
+  ON
+  OFF
+}
+
+class DeviceRequest {
+  + Long userId
+  + String type
+}
+
+class AppleDeviceRequest {
+  + Long id
+}
+
+class XiaomiDeviceRequest {
+  + Long id
+}
+
+class DeviceStateUpdateRequest {
+  + Map<String,String> state  ' e.g. {"temp":"22","currentTemp":"20"}
+  + DeviceStateStatus status
+}
+
+interface DeviceRepository <<interface>> {
+  + save(Device)
+  + findById(Long)
+}
+
+interface DeviceStateRepository <<interface>> {
+  + save(Device)
+  + findByDeviceId(Long)
+}
+
+class DeviceService {
+  + addDevice(DeviceRequest): Device
+  + updateDeviceState(Long, DeviceStateUpdateRequest): void
+}
+
+class DeviceStateService {
+  + processCommand(DeviceCommand)
+  + publishStateChanged(Device device)
+}
+
+class DeviceCommand {
+  + Long deviceId
+  + String commandType  ' e.g. SET_TEMP, TURN_OFF
+  + Map<String,String> payload
+}
+
+class DeviceStateChangedEvent {
+  + Long deviceId
+  + Map<String,String> newState
+  + DeviceStateStatus status
+  + LocalDateTime timestamp
+}
+
+class DeviceController {
+  + GET /devices/by-user-id/{userId}
+  + GET /devices/{id}
+  + POST /devices
+  + PUT /devices/{id}
+}
+
+class DeviceCommandListener {
+  + onMessage(DeviceCommand)
+}
+
+class DeviceEventPublisher {
+  + publish(DeviceStateChangedEvent)
+}
+
+class AppleConnectorClient {
+  + register(AppleDeviceRequest)
+}
+
+class XiaomiConnectorClient {
+  + register(XiaomiDeviceRequest)
+}
+
+DeviceController --> DeviceService
+DeviceService --> DeviceRepository
+DeviceService --> DeviceStateService
+DeviceService --> AppleConnectorClient
+DeviceService --> XiaomiConnectorClient
+DeviceStateService --> DeviceEventPublisher
+DeviceCommandListener --> DeviceStateService
+DeviceStateService --> DeviceStateRepository
+
+@enduml

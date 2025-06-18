@@ -1,0 +1,34 @@
+@startuml
+!includeurl ../c4/C4_Component.puml
+
+Container_Boundary(deviceManagerBoundary, "Device Manager") {
+  Component(deviceController, "Device REST Controller", "Spring RestController", "Handles CRUD HTTP API for devices")
+  Component(deviceService, "Device Service", "Spring Service", "Business logic for device operations and cloud connection")
+  Component(deviceStateService, "Device State Service", "Spring Service", "Business logic for communicating with devices")
+  Component(deviceStateRepository, "Device State Repository", "Spring Data", "Persists device states in PostgreSQL")
+  Component(deviceRepository, "Device Repository", "Spring Data", "Persists device data in PostgreSQL")
+  Component(deviceCommandListener, "Device Command Listener", "Kafka Listener", "Consumes device commands from Kafka")
+  Component(deviceEventPublisher, "Device Event Publisher", "Kafka Producer", "Publishes device state change events to Kafka")
+  Component(appleConnectorClient, "Apple Connector Client", "HTTP Client", "Calls Apple Device Connectors to control physical devices")
+  Component(xiaomiConnectorClient, "Xiaomi Connector Client", "HTTP Client", "Calls Xiaomi Device Connectors to control physical devices")
+}
+
+Rel(deviceController, deviceService, "Invokes for business logic")
+Rel(deviceCommandListener, deviceStateService, "Uses to process commands")
+Rel(deviceStateService, deviceService, "Gets info about devices")
+Rel(deviceStateService, deviceStateRepository, "Stores info about devices")
+Rel(deviceStateService, deviceEventPublisher, "Publishes events about devices states")
+Rel(deviceService, deviceRepository, "Uses for CRUD operations")
+Rel(deviceService, deviceStateService, "Creates update event")
+Rel(deviceService, appleConnectorClient, "Calls to control physical devices")
+Rel(deviceService, xiaomiConnectorClient, "Calls to control physical devices")
+Rel(deviceRepository, devicePostgres, "Reads/Writes device data")
+Rel(deviceEventPublisher, kafka, "Publishes state change events")
+Rel(kafka, deviceCommandListener, "Consumes commands from Kafka")
+
+Rel(apiGateway, deviceController, "API calls for CRUD")
+Rel(scenarioService, deviceController, "API calls for device data")
+Rel(appleConnectorClient, appleDeviceConnector, "Calls for Apple devices")
+Rel(xiaomiConnectorClient, xiaomiDeviceConnector, "Calls for Xiaomi devices")
+
+@enduml

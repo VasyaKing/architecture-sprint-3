@@ -1,0 +1,61 @@
+@startuml
+
+' --- Sequence diagram only ---
+
+actor User
+participant DeviceController
+participant DeviceService
+participant DeviceRepository
+participant AppleConnectorClient
+participant XiaomiConnectorClient
+participant DeviceStateService
+participant DeviceEventPublisher
+participant Kafka as "Kafka Broker"
+participant DeviceCommandListener
+
+== 1) Get Device by ID ==
+User -> DeviceController : GET /devices/{id}
+DeviceController -> DeviceService : getDeviceById(id)
+DeviceService -> DeviceRepository : findById(id)
+DeviceRepository --> DeviceService : Device
+DeviceService --> DeviceController : Device
+
+== 2) Get Devices by User ID ==
+User -> DeviceController : GET /devices/by-user-id/{userId}
+DeviceController -> DeviceService : getDevicesByUserId(userId)
+DeviceService -> DeviceRepository : findByUserId(userId)
+DeviceRepository --> DeviceService : List<Device>
+DeviceService --> DeviceController : List<Device>
+
+== 3) Add Device ==
+User -> DeviceController : POST /devices
+DeviceController -> DeviceService : addDevice(DeviceRequest)
+DeviceService -> DeviceRepository : save(Device)
+
+alt type == "APPLE"
+  DeviceService -> AppleConnectorClient : register(AppleDeviceRequest)
+else type == "XIAOMI"
+  DeviceService -> XiaomiConnectorClient : register(XiaomiDeviceRequest)
+end
+
+DeviceService -> DeviceStateService : publishStateChanged(Device)
+DeviceStateService -> DeviceEventPublisher : publish(DeviceStateChangedEvent)
+DeviceEventPublisher -> Kafka : produce(DeviceStateChangedEvent)
+
+== 4) Set Temperature ==
+User -> DeviceController : PUT /devices/{id}
+DeviceController -> DeviceService : updateDeviceState(id, DeviceStateUpdateRequest)
+DeviceService -> DeviceRepository : findById(id)
+DeviceService -> DeviceRepository : save(Device)
+DeviceService -> DeviceStateService : publishStateChanged(Device)
+DeviceStateService -> DeviceEventPublisher : publish(DeviceStateChangedEvent)
+DeviceEventPublisher -> Kafka : produce(DeviceStateChangedEvent)
+
+== 5) Scenario sends Turn OFF ==
+Kafka -> DeviceCommandListener : consume(DeviceCommand)
+DeviceCommandListener -> DeviceStateService : processCommand(DeviceCommand)
+DeviceStateService -> DeviceStateRepository : save(Device)
+DeviceStateService -> DeviceEventPublisher : publish(DeviceStateChangedEvent)
+DeviceEventPublisher -> Kafka : produce(DeviceStateChangedEvent)
+
+@enduml
